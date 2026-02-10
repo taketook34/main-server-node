@@ -1,11 +1,13 @@
 import paho.mqtt.client as mqtt
-import time, threading, json
+import time, threading, json, os
 from client_service import *
 from video_client import VideoStreamManager
 import cv2
+import netifaces
 
-CLIENT_NAME = "Admin_Console"
+CLIENT_NAME = "PC_" + netifaces.ifaddresses('wlp98s0')[netifaces.AF_INET][0]['addr']
 MANAGMENT_TOPIC = "test/topic"
+#CAMERAIMAGE_TOPIC = "test/images"
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, CLIENT_NAME)
 client_manager = ClientManager()
 video_manager = VideoStreamManager(client, MANAGMENT_TOPIC, client_manager)
@@ -20,28 +22,13 @@ def deviceInfoTask():
     while True:
         time.sleep(1)
         device_info = client_manager.show_clients_list()
-        # for device in device_info.keys():
-        #     print(f"Client {device}: {device_info[device]}ms; ", end="")
-
-        #print()        
+        for device in device_info.keys():
+            print(f"Client {device}: {device_info[device]}ms; ", end="")
+            
+        print()    
         for i in device_info.keys():
             if device_info[i] >= 1200:
-                client_manager.del_client(i)
-
-# def ():
-#     current_device_traffic = 0
-#     while True:
-#         device_info = client_manager.get_clients_list()
-#         if len(device_info) <= current_device_traffic:
-#             current_device_traffic = len(device_info) - 1
-#             if current_device_traffic < 0:
-#                 current_device_traffic = 0
-        
-        
-#     command = {'sender': CLIENT_NAME, 'device': 'Some device', 'command': 'GO'}
-#     client.publish(MANAGMENT_TOPIC, json.dumps(command))
-
-    
+                client_manager.del_client(i)  
     
 def on_message(client, userdata, msg):
     pass
@@ -68,8 +55,10 @@ def main():
 
     client.on_message = on_message
     client.message_callback_add(MANAGMENT_TOPIC, process_managment_data)
+    #client.message_callback_add(CAMERAIMAGE_TOPIC, video_manager.process_input_image)
     client.connect(broker, 1883)
     client.subscribe(MANAGMENT_TOPIC)
+    #client.subscribe(CAMERAIMAGE_TOPIC)
     # client.subscribe(IMAGE_TOPIC)
     #client.publish(MANAGMENT_TOPIC, "hello there")
 
