@@ -1,8 +1,8 @@
 import paho.mqtt.client as mqtt
 import time, threading, json, os, signal, sys
-from client_service import ClientManager
-from video_render import videoPlayerTask
-from device_info import deviceInfoTask
+from src.client_service import ClientManager
+from src.video_render import videoPlayerTask
+from src.device_info import deviceInfoTask
 import netifaces
 
 CLIENT_NAME = "PC_" + netifaces.ifaddresses('wlp98s0')[netifaces.AF_INET][0]['addr']

@@ -1,4 +1,4 @@
-from client_service import ClientManager, Client
+from src.client_service import ClientManager, Client
 import time
 
 def deviceInfoTask(client_manager_, stop_event):
