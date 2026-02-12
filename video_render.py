@@ -2,14 +2,14 @@ import cv2
 import socket
 import numpy as np
 
-def videoPlayerTask(client_manager):
+def videoPlayerTask(client_manager, stop_event):
     current_idx = 0
     window_name = 'UDP Stream Player'
     cv2.namedWindow(window_name)
 
     print("\'n\' - forward, \'p\' - back, \'q\' - quit")
 
-    while True:
+    while not stop_event.is_set():
         # 1. Получаем актуальный список клиентов
         clients = client_manager.get_clients_list()
         

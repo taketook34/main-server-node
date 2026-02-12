@@ -1,39 +1,26 @@
 import paho.mqtt.client as mqtt
-import time, threading, json, os
-from client_service import *
+import time, threading, json, os, signal, sys
+from client_service import ClientManager
 from video_render import videoPlayerTask
-import cv2
+from device_info import deviceInfoTask
 import netifaces
 
 CLIENT_NAME = "PC_" + netifaces.ifaddresses('wlp98s0')[netifaces.AF_INET][0]['addr']
 MANAGMENT_TOPIC = "test/topic"
-#CAMERAIMAGE_TOPIC = "test/images"
+broker = "192.168.0.104" # Можна замінити на IP твого ПК
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, CLIENT_NAME)
 client_manager = ClientManager(client, MANAGMENT_TOPIC)
+program_stop_signal = threading.Event()
 
+def signal_handler(sig, frame):
+    print('\n[!] Get Ctrl+C! Closing work...')
+    program_stop_signal.set()
+    infoThread.join()
+    videoPlayerThread.join()
+    del client_manager
+    sys.exit(0)
 
-def lastMessageCheckTask():
-    while True:
-        client_manager.increase_timers()
-        time.sleep(0.01)
-
-def deviceInfoTask():
-    while True:
-        time.sleep(1)
-        device_info = client_manager.show_clients_list()
-        for device in device_info.keys():
-            print(f"Client {device}: {device_info[device]}ms; ", end="")
-            
-        print()    
-        for i in device_info.keys():
-            if device_info[i] >= 1200:
-                client_manager.del_client(i)  
-    
 def on_message(client, userdata, msg):
-    pass
-
-
-def process_managment_data(client, userdata, msg):
     payload_str = msg.payload.decode("utf-8")
     #print(payload_str)
     data = json.loads(payload_str)
@@ -44,39 +31,24 @@ def process_managment_data(client, userdata, msg):
         #print(payload_str)
         if not client_manager.check_client(sender):
             client_manager.add_client(sender)
-    #data = json.loads(payload_str)
-
-    # print(data['sender'])
-    # print(data['message'])
 
 def main():
-    broker = "192.168.0.104" # Можна замінити на IP твого ПК
+    signal.signal(signal.SIGINT, signal_handler)
 
     client.on_message = on_message
-    client.message_callback_add(MANAGMENT_TOPIC, process_managment_data)
-    #client.message_callback_add(CAMERAIMAGE_TOPIC, video_manager.process_input_image)
     client.connect(broker, 1883)
     client.subscribe(MANAGMENT_TOPIC)
-    #client.subscribe(CAMERAIMAGE_TOPIC)
-    # client.subscribe(IMAGE_TOPIC)
-    #client.publish(MANAGMENT_TOPIC, "hello there")
 
-    infoThread = threading.Thread(target=deviceInfoTask, daemon=True)
+    global infoThread
+    global videoPlayerThread
+
+    infoThread = threading.Thread(target=deviceInfoTask, args=(client_manager, program_stop_signal), daemon=True)
     infoThread.start()
 
-    lastMessageThread = threading.Thread(target=lastMessageCheckTask, daemon=True)
-    lastMessageThread.start()
-
-    videoPlayerThread = threading.Thread(target=videoPlayerTask, args=(client_manager, ), daemon=True)
+    videoPlayerThread = threading.Thread(target=videoPlayerTask, args=(client_manager, program_stop_signal), daemon=True)
     videoPlayerThread.start()
 
     client.loop_forever()
 
 if __name__ == "__main__":
     main()
-
-# print("Сервер запущено. Надсилаю команду 'ON' в топік 'home/led'...")
-
-# while True:
-#     client.publish(MANAGMENT_TOPIC, "hi there")
-#     time.sleep(1)

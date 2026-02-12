@@ -6,6 +6,7 @@ class Client:
     _deviceType = None
     _lastResponseTimeMs = 0
     _udp_server_socket = None
+    _udp_server_port = 0
     # _udp_server_port = 0
     # _udp_server_addr = ''
 
@@ -14,6 +15,7 @@ class Client:
         client_info = self._name.split('_')
         self._id = client_info[1]
         self._deviceType = client_info[0]
+        self._udp_server_port = server_port_
         self._udp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._udp_server_socket.bind(("0.0.0.0", server_port_))
         #self._udp_server_sock.settimeout(0.05)
@@ -29,6 +31,10 @@ class Client:
     def get_socket(self):
         return self._udp_server_socket
     
+    def close_socket(self):
+        self._udp_server_socket.close()
+        print(f"Socket for port {self._udp_server_port} closed")
+    
     def get_deviceType(self):
         return self._deviceType
 
@@ -41,6 +47,8 @@ class Client:
     def increase_timer(self, time_ms=10):
         self._lastResponseTimeMs += time_ms
     
+    def __del__(self):
+        self.close_socket()
 
 class ClientManager:
     ''' SQLITE3 ??? '''
@@ -95,5 +103,15 @@ class ClientManager:
     
     def del_client(self, client_delete):
         with self._clientsLock:
+            self._clientsList.remove(client_delete)
+        
+        stop_message = {'sender': self._device_id, 'receiver': client_delete.get_name(), 'port': 0}
+        self._mqtt_client.publish(self._mqtt_topic, json.dumps(stop_message))
+
+    def __del__(self):
+        client_list_ = self._clientsList.copy()
+
+        for client_delete in client_list_:
+            print(f"removing {client_delete.get_name()}")
             self._clientsList.remove(client_delete)
 
