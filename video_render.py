@@ -61,4 +61,5 @@ def videoPlayerTask(client_manager, stop_event):
         elif key == ord('p'): # Previous
             current_idx = (current_idx - 1) % len(clients)
 
+    print("Closing  CV window")
     cv2.destroyAllWindows()

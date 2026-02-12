@@ -108,10 +108,14 @@ class ClientManager:
         stop_message = {'sender': self._device_id, 'receiver': client_delete.get_name(), 'port': 0}
         self._mqtt_client.publish(self._mqtt_topic, json.dumps(stop_message))
 
-    def __del__(self):
+    def cleanup(self):
         client_list_ = self._clientsList.copy()
 
         for client_delete in client_list_:
             print(f"removing {client_delete.get_name()}")
             self._clientsList.remove(client_delete)
+
+    def __del__(self):
+        pass
+        
 

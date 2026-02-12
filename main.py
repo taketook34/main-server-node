@@ -17,7 +17,9 @@ def signal_handler(sig, frame):
     program_stop_signal.set()
     infoThread.join()
     videoPlayerThread.join()
-    del client_manager
+
+    client_manager.cleanup()
+    
     sys.exit(0)
 
 def on_message(client, userdata, msg):
@@ -42,10 +44,10 @@ def main():
     global infoThread
     global videoPlayerThread
 
-    infoThread = threading.Thread(target=deviceInfoTask, args=(client_manager, program_stop_signal), daemon=True)
+    infoThread = threading.Thread(target=deviceInfoTask, args=(client_manager, program_stop_signal))
     infoThread.start()
 
-    videoPlayerThread = threading.Thread(target=videoPlayerTask, args=(client_manager, program_stop_signal), daemon=True)
+    videoPlayerThread = threading.Thread(target=videoPlayerTask, args=(client_manager, program_stop_signal))
     videoPlayerThread.start()
 
     client.loop_forever()

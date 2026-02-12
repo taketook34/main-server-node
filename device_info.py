@@ -19,3 +19,5 @@ def deviceInfoTask(client_manager_, stop_event):
                     client_manager_.del_client(i)
             
             check_counter = 0
+        
+    print("Closing receiving info from devices")
