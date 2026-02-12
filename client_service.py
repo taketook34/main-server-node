@@ -1,16 +1,24 @@
-import threading
+import threading, json, socket
 
 class Client:
     _name = None
     _id = None
     _deviceType = None
     _lastResponseTimeMs = 0
+    _udp_server_socket = None
+    # _udp_server_port = 0
+    # _udp_server_addr = ''
 
-    def __init__(self, nameString_):
+    def __init__(self, nameString_, server_port_):
         self._name = nameString_
         client_info = self._name.split('_')
         self._id = client_info[1]
         self._deviceType = client_info[0]
+        self._udp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self._udp_server_socket.bind(("0.0.0.0", server_port_))
+        #self._udp_server_sock.settimeout(0.05)
+        # self._udp_server_port = server_port_
+        # self._udp_server_addr = server_addr_
 
     def __str__(self):
         return self._name
@@ -18,8 +26,8 @@ class Client:
     def get_name(self):
         return self._name
     
-    def get_id(self):
-        return self._id
+    def get_socket(self):
+        return self._udp_server_socket
     
     def get_deviceType(self):
         return self._deviceType
@@ -30,14 +38,24 @@ class Client:
     def reset_timer(self):
         self._lastResponseTimeMs = 0
     
-    def increase_timer(self):
-        self._lastResponseTimeMs += 10
-
+    def increase_timer(self, time_ms=10):
+        self._lastResponseTimeMs += time_ms
+    
 
 class ClientManager:
     ''' SQLITE3 ??? '''
     _clientsList = []
     _clientsLock = threading.Lock()
+    _mqtt_client = None
+    _mqtt_topic = ''
+    _device_id = None
+    _client_last_port = 5001
+    #stop_message = {'sender': device_id, 'receiver': self._old_receiver_name, 'command': 'STOP'}
+
+    def __init__(self, client, topic):
+        self._mqtt_client = client
+        self._mqtt_topic = topic
+        self._device_id = self._mqtt_client._client_id.decode('utf-8')
 
     def check_client(self, check_name_):
         for client in self._clientsList:
@@ -59,10 +77,14 @@ class ClientManager:
             return {client : client.get_timer() for client in self._clientsList}
 
     def add_client(self, new_name_):
-        new_client = Client(new_name_)
+        new_client = Client(new_name_, self._client_last_port)
         # critical section
         with self._clientsLock:
             self._clientsList.append(new_client)
+            
+            assoc_message = {'sender': self._device_id, 'receiver': new_name_, 'port': self._client_last_port}
+            self._mqtt_client.publish(self._mqtt_topic, json.dumps(assoc_message))
+        self._client_last_port += 1
     
 
     def increase_timers(self):

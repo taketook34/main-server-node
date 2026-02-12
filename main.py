@@ -1,7 +1,7 @@
 import paho.mqtt.client as mqtt
 import time, threading, json, os
 from client_service import *
-from video_client import VideoStreamManager
+from video_render import videoPlayerTask
 import cv2
 import netifaces
 
@@ -9,8 +9,7 @@ CLIENT_NAME = "PC_" + netifaces.ifaddresses('wlp98s0')[netifaces.AF_INET][0]['ad
 MANAGMENT_TOPIC = "test/topic"
 #CAMERAIMAGE_TOPIC = "test/images"
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, CLIENT_NAME)
-client_manager = ClientManager()
-video_manager = VideoStreamManager(client, MANAGMENT_TOPIC, client_manager)
+client_manager = ClientManager(client, MANAGMENT_TOPIC)
 
 
 def lastMessageCheckTask():
@@ -68,7 +67,8 @@ def main():
     lastMessageThread = threading.Thread(target=lastMessageCheckTask, daemon=True)
     lastMessageThread.start()
 
-    video_manager.start()
+    videoPlayerThread = threading.Thread(target=videoPlayerTask, args=(client_manager, ), daemon=True)
+    videoPlayerThread.start()
 
     client.loop_forever()
 
