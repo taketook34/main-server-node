@@ -6,7 +6,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def videoPlayerTask(client_manager, stop_event):
+def videoPlayerTask(client_manager, stop_event, state_struct):
     current_idx = 0
     window_name = 'UDP Stream Player'
     cv2.namedWindow(window_name)
@@ -47,6 +47,9 @@ def videoPlayerTask(client_manager, stop_event):
                 # Добавим текст, какой канал сейчас смотрим
                 cv2.putText(frame, f"Channel: {current_idx}", (20, 40), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                _, buffer = cv2.imencode('.jpg', frame)
+                state_struct.last_frame = buffer.tobytes()
+
                 cv2.imshow(window_name, frame)
                 
         except (socket.timeout, socket.error):
@@ -54,6 +57,8 @@ def videoPlayerTask(client_manager, stop_event):
             loading_screen = np.zeros((320, 240), dtype=np.uint8)
             cv2.putText(loading_screen, f"Connecting to Ch {current_idx}...", (20, 40), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
+            _, buffer = cv2.imencode('.jpg', loading_screen)
+            state_struct.last_frame = buffer.tobytes()
             cv2.imshow(window_name, loading_screen)
 
         # 4. Логика переключения
