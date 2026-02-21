@@ -4,6 +4,14 @@ from src.client_service import ClientManager
 from src.video_render import videoPlayerTask
 from src.device_info import MQTTManager
 import netifaces
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
 
 CLIENT_NAME = "PC_" + netifaces.ifaddresses('wlp98s0')[netifaces.AF_INET][0]['addr']
 MANAGMENT_TOPIC = "test/topic"
@@ -14,7 +22,7 @@ mqtt_manager = MQTTManager(client_manager, client)
 program_stop_signal = threading.Event()
 
 def signal_handler(sig, frame):
-    print('\n[!] Get Ctrl+C! Closing work...')
+    logger.info('\n[!] Get Ctrl+C! Closing work...')
     program_stop_signal.set()
     infoThread.join()
     videoPlayerThread.join()
@@ -30,14 +38,20 @@ def main():
     client.connect(broker, 1883)
     client.subscribe(MANAGMENT_TOPIC)
 
+    logger.info(f"Subscribed and connected to ... MQTT broker {broker} and topic {MANAGMENT_TOPIC}")
+
     global infoThread
     global videoPlayerThread
 
     infoThread = threading.Thread(target=mqtt_manager.deviceInfoTask, args=(program_stop_signal,))
     infoThread.start()
 
+    logger.info("Informational thread started")
+
     mqttLoopThread = threading.Thread(target=mqtt_manager.mqttLoopTask, args=(program_stop_signal,), daemon=True)
     mqttLoopThread.start()
+
+    logger.info("MQTT messages handler started")
 
     videoPlayerThread = threading.Thread(target=videoPlayerTask, args=(client_manager, program_stop_signal))
     videoPlayerThread.start()

@@ -1,13 +1,17 @@
 import cv2
 import socket
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def videoPlayerTask(client_manager, stop_event):
     current_idx = 0
     window_name = 'UDP Stream Player'
     cv2.namedWindow(window_name)
 
-    print("\'n\' - forward, \'p\' - back, \'q\' - quit")
+    logger.info("\'n\' - forward, \'p\' - back, \'q\' - quit")
 
     while not stop_event.is_set():
         # 1. Получаем актуальный список клиентов
@@ -61,5 +65,5 @@ def videoPlayerTask(client_manager, stop_event):
         elif key == ord('p'): # Previous
             current_idx = (current_idx - 1) % len(clients)
 
-    print("Closing  CV window")
+    logger.info("Closing  CV window")
     cv2.destroyAllWindows()

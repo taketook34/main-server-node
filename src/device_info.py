@@ -1,5 +1,8 @@
 from src.client_service import ClientManager, Client
 import time, json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MQTTManager:
     def __init__(self, client_manager, mqtt_client):
@@ -33,9 +36,11 @@ class MQTTManager:
 
             if check_counter == 100:
                 device_info = self._client_manager.show_clients_list()
+                clients_list_string = "clients list [ "
                 for device in device_info.keys():
-                    print(f"Client {device}: {device_info[device]}ms; ", end="")
-                print()
+                    clients_list_string += f"Client {device}: {device_info[device]}ms; "
+                clients_list_string += "]"
+                logger.info(clients_list_string)
                     
                 for i in device_info.keys():
                     if device_info[i] >= 1200:
@@ -43,4 +48,4 @@ class MQTTManager:
                 
                 check_counter = 0
             
-        print("Closing receiving info from devices")
+        logger.info("Closing receiving info from devices")

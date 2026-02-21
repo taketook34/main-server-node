@@ -1,4 +1,6 @@
-import threading, json, socket
+import threading, json, socket, logging
+
+logger = logging.getLogger(__name__)
 
 class Client:
     _name = None
@@ -18,6 +20,7 @@ class Client:
         self._udp_server_port = server_port_
         self._udp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self._udp_server_socket.bind(("0.0.0.0", server_port_))
+        logger.info(f"Socket for port {self._udp_server_port} created")
         #self._udp_server_sock.settimeout(0.05)
         # self._udp_server_port = server_port_
         # self._udp_server_addr = server_addr_
@@ -33,7 +36,7 @@ class Client:
     
     def close_socket(self):
         self._udp_server_socket.close()
-        print(f"Socket for port {self._udp_server_port} closed")
+        logger.info(f"Socket for port {self._udp_server_port} closed")
     
     def get_deviceType(self):
         return self._deviceType
@@ -112,7 +115,7 @@ class ClientManager:
         client_list_ = self._clientsList.copy()
 
         for client_delete in client_list_:
-            print(f"removing {client_delete.get_name()}")
+            logger.info(f"removing {client_delete.get_name()}")
             self.del_client(client_delete)
 
     def __del__(self):
