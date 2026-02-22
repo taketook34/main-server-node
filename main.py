@@ -1,10 +1,15 @@
 import paho.mqtt.client as mqtt
-import time, threading, json, os, signal, sys
+import threading, signal, sys, time
+import netifaces
+import logging
+import uvicorn
+
 from src.client_service import ClientManager
 from src.video_render import videoPlayerTask
 from src.device_info import MQTTManager
-import netifaces
-import logging
+
+from webservice.state import server_data_struct
+from webservice.web_service import app
 
 logging.basicConfig(
     level=logging.INFO,
@@ -12,6 +17,7 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
 
 CLIENT_NAME = "PC_" + netifaces.ifaddresses('wlp98s0')[netifaces.AF_INET][0]['addr']
 MANAGMENT_TOPIC = "test/topic"
@@ -22,14 +28,16 @@ mqtt_manager = MQTTManager(client_manager, client)
 program_stop_signal = threading.Event()
 
 def signal_handler(sig, frame):
-    logger.info('\n[!] Get Ctrl+C! Closing work...')
+    logger.info('[!] Get Ctrl+C! Closing work...')
     program_stop_signal.set()
     infoThread.join()
     videoPlayerThread.join()
 
     client_manager.cleanup()
-    
     sys.exit(0)
+
+def run_fastapi():
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None, log_level="info")
 
 def main():
     signal.signal(signal.SIGINT, signal_handler)
@@ -43,7 +51,7 @@ def main():
     global infoThread
     global videoPlayerThread
 
-    infoThread = threading.Thread(target=mqtt_manager.deviceInfoTask, args=(program_stop_signal,))
+    infoThread = threading.Thread(target=mqtt_manager.deviceInfoTask, args=(program_stop_signal, server_data_struct))
     infoThread.start()
 
     logger.info("Informational thread started")
@@ -53,8 +61,11 @@ def main():
 
     logger.info("MQTT messages handler started")
 
-    videoPlayerThread = threading.Thread(target=videoPlayerTask, args=(client_manager, program_stop_signal))
+    videoPlayerThread = threading.Thread(target=videoPlayerTask, args=(client_manager, program_stop_signal, server_data_struct))
     videoPlayerThread.start()
+
+    webPageThread = threading.Thread(target=run_fastapi, daemon=True, name="WebThread")
+    webPageThread.start()
 
     #client.loop_forever()
 

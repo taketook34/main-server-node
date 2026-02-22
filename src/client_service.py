@@ -61,7 +61,6 @@ class ClientManager:
     _mqtt_topic = ''
     _device_id = None
     _client_last_port = 5001
-    #stop_message = {'sender': device_id, 'receiver': self._old_receiver_name, 'command': 'STOP'}
 
     def __init__(self, client, topic):
         self._mqtt_client = client

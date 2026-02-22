@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>RPi Control Panel</title>
+    <style>
+        body { font-family: sans-serif; display: flex; background: #121212; color: white; padding: 20px; }
+        .container { display: flex; gap: 20px; width: 100%; }
+        .video-section { flex: 2; }
+        .log-section { flex: 1; background: #1e1e1e; padding: 15px; border-radius: 8px; }
+        #logs { height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #00ff00; }
+        button { padding: 10px 20px; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="video-section">
+            <h2>Live Stream</h2>
+            <img src="/video_feed" style="width: 100%; border-radius: 8px; background: #333;">
+            <br>
+            <button onclick="sendAction('N')">Next</button>
+            <button onclick="sendAction('P')">Previous</button>
+        </div>
+        <div class="log-section">
+            <h2>System Logs</h2>
+            <div id="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket(`ws://${window.location.host}/ws/logs`);
+        const logDiv = document.getElementById('logs');
+        ws.onmessage = (event) => {
+            const entry = document.createElement('div');
+            entry.textContent = `> ${event.data}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        };
+
+        async function sendAction(mode) {
+            await fetch(`/action/${mode}`, { method: 'POST' });
+        }
+    </script>
+</body>
+</html>

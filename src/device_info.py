@@ -8,7 +8,6 @@ class MQTTManager:
     def __init__(self, client_manager, mqtt_client):
         self._mqtt_client = mqtt_client
         self._client_manager = client_manager
-        # self._stop_event = stop_event
 
         self._mqtt_client.on_message = self._on_message
     
@@ -27,7 +26,7 @@ class MQTTManager:
     def mqttLoopTask(self, stop_event):
         self._mqtt_client.loop_forever()
     
-    def deviceInfoTask(self, stop_event):
+    def deviceInfoTask(self, stop_event, state_struct):
         check_counter = 0
         while not stop_event.is_set():
             self._client_manager.increase_timers()
@@ -41,7 +40,8 @@ class MQTTManager:
                     clients_list_string += f"Client {device}: {device_info[device]}ms; "
                 clients_list_string += "]"
                 logger.info(clients_list_string)
-                    
+                state_struct.last_log = clients_list_string
+                
                 for i in device_info.keys():
                     if device_info[i] >= 1200:
                         self._client_manager.del_client(i)
