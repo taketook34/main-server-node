@@ -1,39 +1,51 @@
-from fastapi import FastAPI, WebSocket
-from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from webservice.state import server_data_struct
+
+from fastapi import FastAPI, WebSocket
+from fastapi.responses import HTMLResponse, StreamingResponse
 import asyncio
-import os
+import time
+import cv2
 
 app = FastAPI()
 
-# Эндпоинт для главной страницы
+# Имитация получения кадров (замени на свою логику камеры)
+def gen_frames():
+    while True:
+        frame = server_data_struct.last_frame
+        if frame is None:
+            time.sleep(0.01)
+            continue
+    
+        ret, buffer = cv2.imencode('.jpg', frame)
+        
+        if not ret:
+            continue # Если не удалось закодировать, пробуем следующий
+            
+        frame_bytes = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        
+        time.sleep(0.03)  # Ограничиваем поток ~30 кадрами в секунду
+
 @app.get("/")
-async def index():
-    # Путь к файлу index.html, который лежит в той же папке или рядом
-    return FileResponse('templates/index.html')
+async def get():
+    with open("templates/index.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
 
 @app.get("/video_feed")
 async def video_feed():
-    async def frame_generator():
-        while True:
-            if server_data_struct.last_frame:
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + server_data_struct.last_frame + b'\r\n')
-            await asyncio.sleep(0.04)
-    return StreamingResponse(frame_generator(), media_type="multipart/x-mixed-replace; boundary=frame")
+    return StreamingResponse(gen_frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
-@app.get("/get_logs")
-async def get_logs():
-    # Просто возвращаем текущую строку из нашего хранилища
-    return {"log": str(server_data_struct.last_log)}
+@app.post("/action/{mode}")
+async def handle_action(mode: str):
+    print(f"Команда получена: Режим {mode}")
+    return {"status": "success", "mode": mode}
 
-@app.post("/next")
-async def next_channel():
-    server_data_struct.current_channel += 1
-    return {"status": "ok", "channel": server_data_struct.current_channel}
-
-@app.post("/prev")
-async def prev_channel():
-    if server_data_struct.current_channel > 0:
-        server_data_struct.current_channel -= 1
-    return {"status": "ok", "channel": server_data_struct.current_channel}
+@app.websocket("/ws/logs")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    count = 0
+    while True:
+        await asyncio.sleep(1)
+        count += 1
+        await websocket.send_text(f"{server_data_struct.last_log}")

@@ -47,8 +47,7 @@ def videoPlayerTask(client_manager, stop_event, state_struct):
                 # Добавим текст, какой канал сейчас смотрим
                 cv2.putText(frame, f"Channel: {current_idx}", (20, 40), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-                _, buffer = cv2.imencode('.jpg', frame)
-                state_struct.last_frame = buffer.tobytes()
+                state_struct.last_frame = frame
 
                 cv2.imshow(window_name, frame)
                 
@@ -57,8 +56,7 @@ def videoPlayerTask(client_manager, stop_event, state_struct):
             loading_screen = np.zeros((320, 240), dtype=np.uint8)
             cv2.putText(loading_screen, f"Connecting to Ch {current_idx}...", (20, 40), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 1)
-            _, buffer = cv2.imencode('.jpg', loading_screen)
-            state_struct.last_frame = buffer.tobytes()
+            state_struct.last_frame = loading_screen
             cv2.imshow(window_name, loading_screen)
 
         # 4. Логика переключения

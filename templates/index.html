@@ -1,179 +1,47 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPi Control Center</title>
+    <meta charset="utf-8">
+    <title>RPi Control Panel</title>
     <style>
-        :root {
-            --bg-color: #121212;
-            --card-bg: #1e1e1e;
-            --accent: #3498db;
-            --text-color: #e0e0e0;
-            --log-green: #2ecc71;
-        }
-
-        body { 
-            background: var(--bg-color); 
-            color: var(--text-color); 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-            margin: 0; padding: 20px;
-            display: flex; flex-direction: column; align-items: center; 
-        }
-
-        .header { margin-bottom: 20px; text-align: center; }
-        
-        .main-container { 
-            display: flex; 
-            width: 100%; 
-            max-width: 1200px; 
-            gap: 20px; 
-            flex-wrap: wrap;
-        }
-
-        .video-section { 
-            flex: 2; 
-            min-width: 400px;
-            background: var(--card-bg); 
-            border-radius: 12px; 
-            padding: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        .video-box {
-            width: 100%;
-            aspect-ratio: 16 / 9;
-            background: #000;
-            border-radius: 8px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .video-box img { width: 100%; height: auto; }
-
-        .log-section { 
-            flex: 1; 
-            min-width: 300px;
-            background: var(--card-bg); 
-            border-radius: 12px; 
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-        }
-
-        #log-container { 
-            flex-grow: 1;
-            background: #000; 
-            border-radius: 6px;
-            padding: 10px;
-            font-family: 'Consolas', 'Monaco', monospace; 
-            font-size: 13px; 
-            color: var(--log-green); 
-            overflow-y: auto;
-            height: 400px;
-            white-space: pre-wrap;
-            border: 1px solid #333;
-        }
-
-        .controls { 
-            margin-top: 20px; 
-            display: flex; 
-            gap: 15px; 
-        }
-
-        button { 
-            padding: 12px 30px; 
-            font-size: 14px; 
-            font-weight: bold;
-            cursor: pointer; 
-            background: var(--accent); 
-            border: none; 
-            color: white; 
-            border-radius: 6px;
-            transition: transform 0.1s, background 0.3s;
-        }
-
-        button:hover { background: #2980b9; transform: translateY(-2px); }
-        button:active { transform: translateY(0); }
-
-        .status-bar {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #888;
-        }
+        body { font-family: sans-serif; display: flex; background: #121212; color: white; padding: 20px; }
+        .container { display: flex; gap: 20px; width: 100%; }
+        .video-section { flex: 2; }
+        .log-section { flex: 1; background: #1e1e1e; padding: 15px; border-radius: 8px; }
+        #logs { height: 400px; overflow-y: auto; font-family: monospace; font-size: 12px; color: #00ff00; }
+        button { padding: 10px 20px; cursor: pointer; margin-top: 10px; }
     </style>
 </head>
 <body>
-
-    <div class="header">
-        <h1>Raspberry Pi Monitor</h1>
-    </div>
-
-    <div class="main-container">
+    <div class="container">
         <div class="video-section">
-            <div class="video-box">
-                <img src="/video_feed" alt="Video Stream">
-            </div>
-            <div class="controls">
-                <button onclick="sendAction('/prev')">◀ PREV</button>
-                <button onclick="sendAction('/next')">NEXT ▶</button>
-            </div>
-            <div class="status-bar">Стрим активен: MJPEG поток</div>
+            <h2>Live Stream</h2>
+            <img src="/video_feed" style="width: 100%; border-radius: 8px; background: #333;">
+            <br>
+            <button onclick="sendAction('A')">Режим А</button>
+            <button onclick="sendAction('B')">Режим Б</button>
         </div>
-        
         <div class="log-section">
-            <h3>System Status & Logs</h3>
-            <div id="log-container">Инициализация системы...</div>
+            <h2>System Logs</h2>
+            <div id="logs"></div>
         </div>
     </div>
 
     <script>
-        // Функция для отправки команд (Next/Prev)
-        async function sendAction(path) {
-            try {
-                const response = await fetch(path, { method: 'POST' });
-                const data = await response.json();
-                console.log(`Action ${path} success:`, data);
-            } catch (err) {
-                console.error("Ошибка команды:", err);
-            }
+        // Работа с логами через WebSocket
+        const ws = new WebSocket(`ws://${window.location.host}/ws/logs`);
+        const logDiv = document.getElementById('logs');
+        ws.onmessage = (event) => {
+            const entry = document.createElement('div');
+            entry.textContent = `> ${event.data}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        };
+
+        // Работа с кнопками через API
+        async function sendAction(mode) {
+            await fetch(`/action/${mode}`, { method: 'POST' });
         }
-
-        // Функция обновления логов через обычный GET-запрос
-        let lastLogContent = "";
-        async function fetchLogs() {
-            try {
-                const response = await fetch('/get_logs');
-                const data = await response.json();
-                
-                // Проверяем, пришла ли строка или объект (зависит от твоего API)
-                const logText = typeof data === 'string' ? data : (data.log || JSON.stringify(data));
-
-                if (logText !== lastLogContent) {
-                    const container = document.getElementById('log-container');
-                    
-                    // Если логов много, заменяем содержимое. 
-                    // Если хочешь "бегущую строку", используй container.innerHTML += ...
-                    container.textContent = logText;
-                    
-                    // Скроллим вниз
-                    container.scrollTop = container.scrollHeight;
-                    lastLogContent = logText;
-                }
-            } catch (err) {
-                console.warn("Логи временно недоступны...");
-            }
-        }
-
-        // Опрашиваем сервер каждые 1000 мс (1 секунда)
-        // Этого достаточно для мониторинга списка клиентов
-        setInterval(fetchLogs, 1000);
-
-        // Первый запуск сразу
-        fetchLogs();
     </script>
 </body>
 </html>
