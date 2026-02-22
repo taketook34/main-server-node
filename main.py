@@ -37,9 +37,6 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 def run_fastapi():
-    # while True:
-    #     logger.info(f"web info: {server_data_struct.last_log}")
-    #     time.sleep(2)
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None, log_level="info")
 
 def main():

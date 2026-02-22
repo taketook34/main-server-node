@@ -8,7 +8,6 @@ class MQTTManager:
     def __init__(self, client_manager, mqtt_client):
         self._mqtt_client = mqtt_client
         self._client_manager = client_manager
-        # self._stop_event = stop_event
 
         self._mqtt_client.on_message = self._on_message
     

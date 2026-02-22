@@ -28,7 +28,6 @@
     </div>
 
     <script>
-        // Работа с логами через WebSocket
         const ws = new WebSocket(`ws://${window.location.host}/ws/logs`);
         const logDiv = document.getElementById('logs');
         ws.onmessage = (event) => {
@@ -38,7 +37,6 @@
             logDiv.scrollTop = logDiv.scrollHeight;
         };
 
-        // Работа с кнопками через API
         async function sendAction(mode) {
             await fetch(`/action/${mode}`, { method: 'POST' });
         }

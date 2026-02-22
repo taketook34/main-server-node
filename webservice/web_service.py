@@ -8,7 +8,6 @@ import cv2
 
 app = FastAPI()
 
-# Имитация получения кадров (замени на свою логику камеры)
 def gen_frames():
     while True:
         frame = server_data_struct.last_frame
@@ -19,13 +18,13 @@ def gen_frames():
         ret, buffer = cv2.imencode('.jpg', frame)
         
         if not ret:
-            continue # Если не удалось закодировать, пробуем следующий
+            continue
             
         frame_bytes = buffer.tobytes()
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         
-        time.sleep(0.03)  # Ограничиваем поток ~30 кадрами в секунду
+        time.sleep(0.03)
 
 @app.get("/")
 async def get():
@@ -38,7 +37,6 @@ async def video_feed():
 
 @app.post("/action/{mode}")
 async def handle_action(mode: str):
-    #print(f"Команда получена: Режим {mode}")
     if mode == 'N':
         server_data_struct.current_channel += 1
     if mode == "P":
