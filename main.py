@@ -28,7 +28,7 @@ mqtt_manager = MQTTManager(client_manager, client)
 program_stop_signal = threading.Event()
 
 def signal_handler(sig, frame):
-    logger.info('\n[!] Get Ctrl+C! Closing work...')
+    logger.info('[!] Get Ctrl+C! Closing work...')
     program_stop_signal.set()
     infoThread.join()
     videoPlayerThread.join()

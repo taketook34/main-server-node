@@ -38,7 +38,11 @@ async def video_feed():
 
 @app.post("/action/{mode}")
 async def handle_action(mode: str):
-    print(f"Команда получена: Режим {mode}")
+    #print(f"Команда получена: Режим {mode}")
+    if mode == 'N':
+        server_data_struct.current_channel += 1
+    if mode == "P":
+        server_data_struct.current_channel -= 1
     return {"status": "success", "mode": mode}
 
 @app.websocket("/ws/logs")
